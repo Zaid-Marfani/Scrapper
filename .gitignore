@@ -1,6 +1,9 @@
 # Node dependencies
 node_modules/
+logs/
 app/edge-profile/
+Realeses/
+_backup/
 
 Purchase list.xlsm
 package-lock.json
@@ -8,5 +11,6 @@ app/package.json
 app/package-lock.json
 output\scrape_done.flag
 ~$Purchase list.xlsm
+
 output\request_single.csv
 output\input.csv

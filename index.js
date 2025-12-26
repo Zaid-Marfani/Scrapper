@@ -1,25 +1,38 @@
-const path = require("path");
-const { checkAndUpdate } = require("./updater");
+const { syncShippingLines } = require("./app/core/syncShippingLines");
+const { runUpdater } = require("./updater");
+const { logDebug } = require("./app/core/debug");
+
+const cmd = process.argv[2];
 
 (async () => {
+  try {
+    switch (cmd) {
+     case "update":
+        logDebug("🔄 Updating app + shipping lines...");
+        syncShippingLines();
+        runUpdater();
+        break;
 
+      case "single":
+        require("./app/run_single");
+        break;
 
-  const mode = process.argv[2];
-  const args = process.argv.slice(3);
+      case "multiple":
+        require("./app/run_parallel");
+        break;
 
-  const appDir = path.join(process.cwd(), "app");
-
-  if (mode === "single") {
-    await require(path.join(appDir, "run_single"))(...args);
-  } else if (mode === "multiple") {
-    await require(path.join(appDir, "run_parallel"))(...args);
-  } else if (mode === "update") {
-    try {
-      await checkAndUpdate();
-    } catch (e) {
-      console.log("Updater skipped:", e.message);
+      default:
+        logDebug(`
+Usage:
+  node index.js single
+  node index.js multiple
+  node index.js update:lines
+  node index.js update:app
+  node index.js update:all
+        `);
     }
-  } else {
-    console.error("Invalid mode");
+  } catch (err) {
+    logDebug("❌ Error:", err.message);
+    process.exit(1);
   }
 })();
