@@ -3,7 +3,7 @@ const path = require("path");
 const https = require("https");
 const unzipper = require("unzipper");
 
-const UPDATE_URL = "https://your-server.com/version.json";
+const UPDATE_URL = "https://github.com/Zaid-Marfani/Scrapper/blob/main/updates/version.json";
 
 async function fetchJSON(url) {
   return new Promise(resolve => {

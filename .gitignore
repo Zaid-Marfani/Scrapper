@@ -3,7 +3,6 @@ node_modules/
 app/edge-profile/
 
 Purchase list.xlsm
-package.json
 package-lock.json
 app/package.json
 app/package-lock.json
