@@ -1,0 +1,13 @@
+# Node dependencies
+node_modules/
+app/edge-profile/
+
+Purchase list.xlsm
+package.json
+package-lock.json
+app/package.json
+app/package-lock.json
+output\scrape_done.flag
+~$Purchase list.xlsm
+output\request_single.csv
+output\input.csv
