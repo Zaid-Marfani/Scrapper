@@ -1,13 +1,29 @@
 const fs = require("fs");
 const path = require("path");
-const outDir = path.join(__dirname, "../../", "logs");
-if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-const runId = new Date().toISOString().replace(/[:.]/g,"-");
-const debugFile = path.join(outDir, `debug_${runId}.txt`);
+const paths = require("./paths");
+
+const logDir = paths.LOGS;
+
+try {
+  fs.mkdirSync(logDir, { recursive: true });
+} catch {}
+
+const debugFile = path.join(logDir, "debug_startup.txt");
+
+fs.writeFileSync(
+  debugFile,
+  [
+    "DEBUG START",
+    `cwd: ${process.cwd()}`,
+    `__dirname: ${__dirname}`,
+    `files in cwd: ${fs.readdirSync(process.cwd()).join(", ")}`,
+  ].join("\n"),
+  "utf8"
+);
 
 function logDebug(msg) {
-    const line = `[${new Date().toISOString()}] ${msg}\n`;
-    try { fs.appendFileSync(debugFile, line, "utf8"); } catch(e){ console.error("LOG WRITE ERR", e.message); }
-    console.log(line.trim());
+  fs.appendFileSync(debugFile, `\n${msg}`, "utf8");
+  console.log(msg);
 }
+
 module.exports = { logDebug };

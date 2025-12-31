@@ -1,139 +1,69 @@
-const fs = require("fs");
+const export_results_csv = require("./core/export_results_csv");
+const PATHS = require("./core/paths");
 const path = require("path");
-const csv = require("csv-parser");
-const { chromium } = require("playwright");
-const Database = require("better-sqlite3");
 
-const router = require("./core/router");
-const { logDebug } = require("./core/debug");
-const { upsertRecord } = require("./core/db");
-const { recordToObject } = require("./core/recordFactory");
-const {
-  buildRecord,
-  applyCapabilities,
-  recordToRow,
-  getCsvHeader
-} = require("./core/recordFactory");
-const db = new Database(
-  path.join(__dirname, "../output/bl_results.db")
-);
+module.exports = async function runSingle() {
+  const fs = require("fs");
+  const csv = require("csv-parser");
+  const { chromium } = require("playwright");
+  const router = require("./core/router");
+  const { logDebug } = require("./core/debug");
+  const { upsertRecord } = require("./core/db");
+  const paths = require("./core/paths");
+  const {
+    buildRecord,
+    applyCapabilities,
+    recordToObject
+  } = require("./core/recordFactory");
 
+  logDebug("🚀 Single runner started");
+  logDebug("EDGE_PROFILE =", paths.EDGE_PROFILE);
 
+  if (!fs.existsSync(paths.REQUEST_SINGLE)) {
+    throw new Error(`request_single.csv not found at ${paths.REQUEST_SINGLE}`);
+  }
 
-const REQUEST = path.join(__dirname, "../output/request_single.csv");
-const BL_RESULTS = path.join(__dirname, "../output/bl_results.csv");
-const PROFILE_PATH = path.join(__dirname, "edge-profile");
-
-const OPTIONS = {
-  headless: false,
-  channel: "msedge",
-  viewport: { width: 1200, height: 900 },
-  userAgent:
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-};
-
-// ------------------ read request_single.csv ------------------
-async function readRequest() {
-  return new Promise((resolve, reject) => {
+  // --- read CSV ---
+  const task = await new Promise((resolve, reject) => {
     let row = null;
-    if (!fs.existsSync(REQUEST)) return resolve(null);
-
-    fs.createReadStream(REQUEST)
+    fs.createReadStream(paths.REQUEST_SINGLE)
       .pipe(csv({ mapHeaders: ({ header }) => header.trim().toLowerCase() }))
       .on("data", r => {
         if (r.bl && r.scraper) {
-          row = {
-            bl: r.bl.trim(),
-            scraper: r.scraper.trim().toLowerCase()
-          };
+          row = { bl: r.bl.trim(), scraper: r.scraper.trim().toLowerCase() };
         }
-
       })
       .on("end", () => resolve(row))
       .on("error", reject);
   });
-}
 
-// ------------------ MAIN ------------------
-(async () => {
-  try {
-    const task = await readRequest();
-    if (!task) {
-      logDebug("No valid request_single.csv");
-      process.exit(1);
-    }
+  if (!task) throw new Error("No valid row in request_single.csv");
 
-    logDebug(`Single scrape → ${task.bl}`);
+  logDebug(`🔍 Single scrape → ${task.bl}`);
 
-    const context = await chromium.launchPersistentContext(
-      PROFILE_PATH,
-      OPTIONS
-    );
-    const page = await context.newPage();
+  const context = await chromium.launchPersistentContext(
+    paths.EDGE_PROFILE,
+    { headless: false, channel: "msedge" }
+  );
 
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, "webdriver", { get: () => false });
-    });
+  const page = await context.newPage();
 
-    let route = null;
+  const route = router(task.scraper);
+  if (!route) throw new Error("Scraper not found");
 
-    try {
-      route = router(task.scraper);
-      if (!route || typeof route.scrape !== "function") {
-        throw new Error("Scraper not found");
-      }
+  const line = require("better-sqlite3")(paths.DB)
+    .prepare(`SELECT url FROM shipping_lines WHERE scraper_key=?`)
+    .get(task.scraper);
 
-      const line = db.prepare(`
-  SELECT url
-  FROM shipping_lines
-  WHERE active = 1
-    AND scraper_key = ?
-`).get(task.scraper);
+  const scraped = await route.scrape(page, line.url, task.bl);
 
-if (!line) {
-  throw new Error("Shipping line disabled or not found");
-}
+  let record = buildRecord({ bl: task.bl, status: "Success" }, scraped);
+  record = applyCapabilities(record, route.meta);
 
+  upsertRecord(recordToObject(record));
+  export_results_csv();
+  fs.writeFileSync(path.join(PATHS.OUTPUT,"scrape_done.flag"), "done");
 
-      const scraped = await route.scrape(page, line.url, task.bl);
-
-
-      let record = buildRecord(
-        { bl: task.bl, status: "Success" },
-        scraped || {}
-      );
-
-      record = applyCapabilities(record, route.meta);
-
-      upsertRecord(recordToObject(record));
-
-
-    } catch (err) {
-      logDebug("Single scrape error: " + err.message);
-
-      let record = buildRecord(
-        { bl: task.bl, status: "Error" },
-        { lastEvent: err.message }
-      );
-
-      record = applyCapabilities(record, route?.meta);
-
-      upsertRecord(recordToObject(record));
-
-    }
-
-
-    await page.close();
-    await context.close();
-    fs.writeFileSync("C:/Scripts/output/scrape_done.flag", "done");
-
-  } catch (err) {
-    logDebug("Fatal single error: " + err.message);
-    fs.writeFileSync("C:/Scripts/output/scrape_done.flag", "done");
-    process.exit(1);
-  }
-})();
-
-module.exports = async function runSingle(blNo) {
-  console.log("Running single BL:", blNo);
+  await context.close();
+  logDebug("✅ Single scrape completed");
 };

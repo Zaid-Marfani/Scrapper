@@ -29,7 +29,7 @@ async function scrape(page, url, bl) {
         logDebug(`KMTC → ${url} ${blNo}`);
 
         /* ---------------- PAGE LOAD ---------------- */
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10000 });
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
         await page.waitForTimeout(3000);
 
         /* ---------------- INPUT BL ---------------- */

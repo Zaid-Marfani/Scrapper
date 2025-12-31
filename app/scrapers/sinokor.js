@@ -34,7 +34,7 @@ async function scrape(page, url, bl) {
   url = url + bl;
   logDebug("sinokor: opening page for " + url);
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10000 });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     await page.waitForTimeout(2000);
     await safeClick(page, 'xpath=//*[@id="tglDetailInfo"]');
 

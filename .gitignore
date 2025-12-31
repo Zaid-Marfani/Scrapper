@@ -4,13 +4,11 @@ logs/
 app/edge-profile/
 Realeses/
 _backup/
-
-Purchase list.xlsm
+dist/
+output/
+edge-profile/
 package-lock.json
-app/package.json
-app/package-lock.json
-output\scrape_done.flag
-~$Purchase list.xlsm
-
-output\request_single.csv
-output\input.csv
+package.json
+app/core/package.json
+app/core/package-lock.json
+app/core/package.json

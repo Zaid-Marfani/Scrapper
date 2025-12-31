@@ -34,7 +34,7 @@ const { extractEvents } = require("../core/events");
 async function scrape(page, url, bl) {
   try {
     logDebug("EVERGREEN → " + url);
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 6000 });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10000 });
     await page.waitForTimeout(3000);
     await safeRadio(page, 'xpath=//*[@id="s_bl"]');
     await safeType(page, 'xpath=//*[@id="NO"]', bl.replace("EGLV", ""));

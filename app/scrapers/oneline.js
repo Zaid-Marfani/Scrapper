@@ -25,7 +25,7 @@ async function scrape(page, url, bl) {
 
   try {
     /* ---------------- Page load & expand ---------------- */
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 6000 });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     await page.waitForTimeout(3000);
 
     // Expand container details

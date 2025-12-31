@@ -1,9 +1,8 @@
 const path = require("path");
 const Database = require("better-sqlite3");
+const paths = require("./paths");
 
-const db = new Database(
-  path.join(__dirname, "../../output/bl_results.db")
-);
+const db = new Database(paths.DB);
 
 module.exports = function router(scraperKey = "") {
   if (!scraperKey) return null;
@@ -23,8 +22,7 @@ module.exports = function router(scraperKey = "") {
     return require(
       path.join(__dirname, "..", "scrapers", row.scraper_key)
     );
-  } catch {
+  } catch (err) {
     return null;
   }
 };
-  

@@ -9,11 +9,14 @@ const https = require("https");
 const os = require("os");
 const { execFileSync } = require("child_process");
 
-const ROOT = __dirname;
-const PKG_PATH = path.join(ROOT, "./Scrapper-Config/version.json");
+const paths = require("./paths");
+const { logDebug } = require("./app/core/debug");
+
+const ROOT = paths.LOGS;
+const PKG_PATH = path.join(ROOT, "config","version.json");
 
 const META_URL =
-  "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper-Config/refs/heads/main/version.json";
+  "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper/refs/heads/main/config/version.json";
 
 const TMP_DIR = path.join(os.tmpdir(), "scrapper_update");
 const ZIP_PATH = path.join(TMP_DIR, "update.zip");
@@ -97,7 +100,7 @@ function download(url, dest, depth = 0) {
 
       file.on("finish", () => {
         file.close(() => {
-          console.log("ZIP WRITTEN:", dest);
+          logDebug("ZIP WRITTEN:", dest);
           resolve();
         });
       });
@@ -111,28 +114,28 @@ function download(url, dest, depth = 0) {
 /* ------------------ MAIN ------------------ */
 
 async function runUpdater() {
-  console.log("🔄 Checking for app updates...");
+  logDebug("🔄 Checking for app updates...");
 
   const local = readJson(PKG_PATH);
   const remote = await fetchJson(META_URL);
 
-  console.log(`📦 Installed: v${local.version}`);
-  console.log(`🌐 Available: v${remote.version}`);
+  logDebug(`📦 Installed: v${local.version}`);
+  logDebug(`🌐 Available: v${remote.version}`);
 
   if (semver(remote.version, local.version) <= 0) {
-    console.log("✅ App already up to date");
+    logDebug("✅ App already up to date");
     return;
   }
 
-  console.log("📝 Release notes:");
-  remote.notes?.forEach(n => console.log("  •", n));
+  logDebug("📝 Release notes:");
+  remote.notes?.forEach(n => logDebug("  •", n));
 
   // Prepare temp
   fs.rmSync(TMP_DIR, { recursive: true, force: true });
   fs.mkdirSync(TMP_DIR, { recursive: true });
 
-  console.log("⬇ Downloading ZIP from GitHub Release...");
-  console.log("DEBUG ZIP URL:", remote.zip);
+  logDebug("⬇ Downloading ZIP from GitHub Release...");
+  logDebug("DEBUG ZIP URL:", remote.zip);
  await download(remote.zip, ZIP_PATH);
 
 
@@ -142,14 +145,14 @@ async function runUpdater() {
   }
 
 
-  console.log("📦 Extracting ZIP...");
+  logDebug("📦 Extracting ZIP...");
   execFileSync("powershell", [
     "-Command",
     `Expand-Archive -Force "${ZIP_PATH}" "${TMP_DIR}"`
   ]);
 
   // Backup current app
-  console.log("🛡 Backing up current version...");
+  logDebug("🛡 Backing up current version...");
   fs.rmSync(BACKUP_DIR, { recursive: true, force: true });
   fs.mkdirSync(BACKUP_DIR);
 
@@ -158,7 +161,7 @@ async function runUpdater() {
   copy(PKG_PATH, path.join(BACKUP_DIR, "package.json"));
 
   // Apply update
-  console.log("🚀 Applying update...");
+  logDebug("🚀 Applying update...");
   const files = Array.isArray(remote.files)
   ? remote.files
   : ["app/", "index.js", "package.json"];
@@ -175,18 +178,18 @@ for (const f of files) {
   local.version = remote.version;
   fs.writeFileSync(PKG_PATH, JSON.stringify(local, null, 2));
 
-  console.log("🎉 App update completed successfully");
+  logDebug("🎉 App update completed successfully");
 }
 
 /* ------------------ ROLLBACK ------------------ */
 
 function rollback() {
   if (!fs.existsSync(BACKUP_DIR)) return;
-  console.log("↩ Rolling back...");
+  logDebug("↩ Rolling back...");
   copy(path.join(BACKUP_DIR, "app"), path.join(ROOT, "app"));
   copy(path.join(BACKUP_DIR, "index.js"), path.join(ROOT, "index.js"));
   copy(path.join(BACKUP_DIR, "package.json"), PKG_PATH);
-  console.log("✅ Rollback completed");
+  logDebug("✅ Rollback completed");
 }
 
 /* ------------------ EXPORT ------------------ */

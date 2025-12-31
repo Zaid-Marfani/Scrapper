@@ -1,7 +1,6 @@
 {
   "name": "core",
   "version": "1.0.0",
-  "description": "",
   "main": "action.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,5 +11,7 @@
   "type": "commonjs",
   "dependencies": {
     "date-fns": "^4.1.0"
-  }
+  },
+  "devDependencies": {},
+  "description": ""
 }

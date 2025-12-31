@@ -2,10 +2,10 @@ const Database = require("better-sqlite3");
 const path = require("path");
 const schema = require("./schema");
 const { logDebug } = require("./debug");
-    
+const paths = require("./paths");
 
-const dbPath = path.join(__dirname, "../../output/bl_results.db");
-const db = new Database(dbPath);
+
+const db = new Database(paths.DB);
 
 // --- CREATE TABLE ONCE ---
 db.prepare(`
@@ -116,13 +116,17 @@ const seedShipping = db.prepare(`
   ["MSC", "MSC", "msc", "https://www.msc.com/track-a-shipment"],
   ["ONE", "ONE Line", "oneline", "https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking"],
   ["EVG", "Evergreen", "evergreen", "https://www.shipmentlink.com/servlet/TDB1_CargoTracking.do"],
-  ["SNK", "Sinokor", "sinokor", "https://ebusiness.sinokor.co.kr/eservice/ebiz/tracking"],
-  ["KMT", "KMTC", "kmtc", "https://www.kmtc.co.kr/eng/tracking"]
+  ["SNK", "Sinokor", "sinokor", "https://ebiz.sinokor.co.kr/BLDetail?blno="],
+  ["KMT", "KMTC", "kmtc", "https://www.ekmtc.com/index.html#/cargo-tracking"]
 ].forEach(r => seedShipping.run(...r));
 
+function getAllShippingLines() {
+  return db.prepare("SELECT * FROM shipping_lines").all();
+}
 
 
 module.exports = {
   upsertRecord,
-  getAllRecords
+  getAllRecords,
+  getAllShippingLines
 };

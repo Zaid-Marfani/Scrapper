@@ -2,12 +2,14 @@ const https = require("https");
 const Database = require("better-sqlite3");
 const path = require("path");
 const { logDebug } = require("./debug");
+const paths = require("./paths");
+const exportShippingLinesToCsv = require("./export_shipping_lines_csv");
 
-const DB_PATH = path.join(__dirname, "../../output/bl_results.db");
+const DB_PATH = paths.DB;
 
 // ✅ RAW GitHub URL (AUTHORITATIVE SOURCE)
 const REMOTE_URL =
-  "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper-Config/refs/heads/main/shipping_lines.json";
+  "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper/refs/heads/main/config/shipping_lines.json";
 
 /* ------------------ SEMVER ------------------ */
 function compare(a, b) {
@@ -108,6 +110,8 @@ async function syncShippingLines() {
   `).run(remote.version);
 
   logDebug("🎉 Shipping lines updated successfully");
+  logDebug("🎉 Shipping lines exporting to csv file");
+  exportShippingLinesToCsv();
 }
 
 module.exports = { syncShippingLines };

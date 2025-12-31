@@ -1,39 +1,25 @@
+"use strict";
+
 const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
 const { chromium } = require("playwright");
-const Database = require("better-sqlite3");
 
 const router = require("./core/router");
+const paths = require("./core/paths");
 const { logDebug } = require("./core/debug");
-const { upsertRecord, getAllRecords } = require("./core/db");
-const db = new Database(
-  path.join(__dirname, "../output/bl_results.db")
-);
-
-
+const { upsertRecord } = require("./core/db");
 const {
   buildRecord,
   applyCapabilities,
-  recordToRow,
-  getCsvHeader
+  recordToObject
 } = require("./core/recordFactory");
+const export_results_csv = require("./core/export_results_csv");
 
+const INPUT_CSV = paths.INPUT;
+const CONCURRENCY = 6;   // ✅ number of parallel tabs
 
-const INPUT_CSV = path.join(__dirname, "../output/input.csv");
-const PROFILE_PATH = path.join(__dirname, "edge-profile");
-
-const CONCURRENCY = 6;
-
-const BROWSER_OPTIONS = {
-  headless: false,
-  channel: "msedge",
-  viewport: { width: 1200, height: 900 },
-  userAgent:
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-};
-
-// ------------------ read input.csv ------------------
+// ------------------ READ input.csv ------------------
 function readInputCsv() {
   return new Promise((resolve, reject) => {
     const rows = [];
@@ -46,44 +32,38 @@ function readInputCsv() {
             scraper: r.scraper.trim().toLowerCase()
           });
         }
-
       })
       .on("end", () => resolve(rows))
       .on("error", reject);
   });
 }
 
-// ------------------ worker task ------------------
-const resultsMap = new Map();
-
+// ------------------ WORKER (TAB) ------------------
 async function processTask(context, task, wid) {
-  logDebug(`[W${wid}] ${task.bl}`);
-
-  let page = null;
-  let route = null;
+  let page;
+  let route;
 
   try {
+    logDebug(`[TAB ${wid}] ${task.bl}`);
+
     page = await context.newPage();
+
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "webdriver", { get: () => false });
     });
 
     route = router(task.scraper);
-    if (!route || typeof route.scrape !== "function") {
-      throw new Error("Scraper not found");
-    }
+    if (!route) throw new Error("Scraper not found");
 
-    const line = db.prepare(`
-  SELECT url
-  FROM shipping_lines
-  WHERE active = 1
-    AND scraper_key = ?
-`).get(task.scraper);
+    const line = require("better-sqlite3")(paths.DB)
+      .prepare(`
+        SELECT url
+        FROM shipping_lines
+        WHERE active = 1 AND scraper_key = ?
+      `)
+      .get(task.scraper);
 
-    if (!line) {
-      throw new Error("Shipping line disabled or not found");
-    }
-
+    if (!line) throw new Error("Shipping line not found");
 
     const scraped = await route.scrape(page, line.url, task.bl);
 
@@ -92,34 +72,34 @@ async function processTask(context, task, wid) {
       scraped || {}
     );
 
-    upsertRecord(record);
-
+    record = applyCapabilities(record, route.meta);
+    upsertRecord(recordToObject(record));
 
   } catch (err) {
-    logDebug(`[W${wid}] Error ${task.bl}: ${err.message}`);
+    logDebug(`[TAB ${wid}] ERROR ${task.bl}: ${err.message}`);
 
-    const record = applyCapabilities(
-      buildRecord(
-        { bl: task.bl, status: "Error" },
-        { lastEvent: err.message }
-      ),
-      route?.meta
+    let record = buildRecord(
+      { bl: task.bl, status: "Error" },
+      { lastEvent: err.message }
     );
 
-    upsertRecord(record);
-
+    record = applyCapabilities(record, route?.meta);
+    upsertRecord(recordToObject(record));
 
   } finally {
     if (page) await page.close();
   }
 }
 
-
-// ------------------ parallel runner ------------------
+// ------------------ PARALLEL RUNNER ------------------
 async function runParallel(tasks) {
   const context = await chromium.launchPersistentContext(
-    PROFILE_PATH,
-    BROWSER_OPTIONS
+    paths.EDGE_PROFILE,
+    {
+      headless: false,
+      channel: "msedge",
+      viewport: { width: 1200, height: 900 }
+    }
   );
 
   let index = 0;
@@ -137,41 +117,24 @@ async function runParallel(tasks) {
   );
 
   await context.close();
+  export_results_csv();
+    fs.writeFileSync(path.join(PATHS.OUTPUT,"scrape_done.flag"), "done");
 }
 
-// ------------------ MAIN ------------------
-(async () => {
-  try {
-    if (!fs.existsSync(INPUT_CSV)) {
-      logDebug("input.csv not found");
-      process.exit(1);
-    }
+// ------------------ ENTRY ------------------
+module.exports = async function runMultiple() {
+  logDebug("🚀 Parallel TAB runner started");
 
-    const tasks = await readInputCsv();
-    if (!tasks.length) {
-      logDebug("No valid rows in input.csv");
-      process.exit(1);
-    }
-
-
-    // 🔥 READ EVERYTHING FROM SQLITE
-    const records = getAllRecords();
-
-    await runParallel(tasks);
-
-    logDebug("Parallel scraping completed (SQLite updated)");
-    fs.writeFileSync("C:/Scripts/output/scrape_done.flag", "done");
-
-    logDebug("Parallel scrape completed");
-    fs.writeFileSync("C:/Scripts/output/scrape_done.flag", "done");
-
-  } catch (err) {
-    logDebug("Fatal parallel error: " + err.message);
-    fs.writeFileSync("C:/Scripts/output/scrape_done.flag", "done");
-    process.exit(1);
+  if (!fs.existsSync(INPUT_CSV)) {
+    throw new Error(`input.csv not found at ${INPUT_CSV}`);
   }
-})();
 
-module.exports = async function runMultiple(filePath) {
-  console.log("Running multiple from:", filePath);
+  const tasks = await readInputCsv();
+  if (!tasks.length) {
+    throw new Error("input.csv has no valid rows");
+  }
+
+  await runParallel(tasks);
+
+  logDebug("✅ Parallel tab scrape completed");
 };
