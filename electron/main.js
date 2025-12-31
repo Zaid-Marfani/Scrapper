@@ -3,11 +3,12 @@
 const { app } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const PATHS = require("../app/core/paths");
 
 app.on("ready", async () => {
   try {
-    const ROOT = path.dirname(process.execPath);
-    const OUTPUT = path.join(ROOT, "output");
+    const ROOT = PATHS.ROOT;
+    const OUTPUT = PATHS.OUTPUT;
     const INIT_FLAG = path.join(OUTPUT, ".initialized");
 
     // 🟡 First run → run init INLINE (NO SPAWN)

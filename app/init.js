@@ -1,6 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const paths = require("./core/paths");
+const { syncShippingLines } = require("./core/syncShippingLines");
+require("./core/db"); // ⬅️ FORCE DB + TABLE CREATION
+
 
 module.exports = async function init() {
   const flag = path.join(paths.OUTPUT, ".initialized");
@@ -14,8 +17,10 @@ module.exports = async function init() {
     if (!fs.existsSync(paths.DB)) {
         console.log("⚠ DB missing – it will be created automatically");
     }
+    
+    console.log("🟢 Scrapper initialization started");
 
-  console.log("🟢 Scrapper initialization started");
+  syncShippingLines();
 
   // Export empty CSVs
   require("./core/export_results_csv")();

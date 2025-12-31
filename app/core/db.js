@@ -74,6 +74,23 @@ function migrateSchema(schema) {
 
 migrateSchema(schema);
 
+db.prepare(`
+  INSERT OR IGNORE INTO bl_results (
+    bl,
+    eta,
+    etd,
+    cntNo,
+    cntType
+  ) VALUES (
+    '__SEED__',
+    NULL,
+    NULL,
+    NULL,
+    NULL
+  )
+`).run();
+
+
 
 // ===============================
 // SHIPPING LINES MASTER (ADMIN)
@@ -103,22 +120,6 @@ if (!shippingCols.includes("url")) {
     ADD COLUMN url TEXT
   `).run();
 }
-
-// --- SEED SHIPPING LINES (ADMIN DEFAULTS) ---
-const seedShipping = db.prepare(`
-  INSERT OR IGNORE INTO shipping_lines
-  (code, display_name, scraper_key, url)
-  VALUES (?, ?, ?, ?)
-`);
-
-[
-  ["MAE", "Maersk", "maersk", "https://www.maersk.com/tracking/"],
-  ["MSC", "MSC", "msc", "https://www.msc.com/track-a-shipment"],
-  ["ONE", "ONE Line", "oneline", "https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking"],
-  ["EVG", "Evergreen", "evergreen", "https://www.shipmentlink.com/servlet/TDB1_CargoTracking.do"],
-  ["SNK", "Sinokor", "sinokor", "https://ebiz.sinokor.co.kr/BLDetail?blno="],
-  ["KMT", "KMTC", "kmtc", "https://www.ekmtc.com/index.html#/cargo-tracking"]
-].forEach(r => seedShipping.run(...r));
 
 function getAllShippingLines() {
   return db.prepare("SELECT * FROM shipping_lines").all();

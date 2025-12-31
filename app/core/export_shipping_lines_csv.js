@@ -1,34 +1,38 @@
 const fs = require("fs");
 const path = require("path");
 
-const { getAllShippingLines } = require("./db");
+const Database = require("better-sqlite3");
 const paths = require("./paths");
 
-function exportShippingLinesToCsv() {
+module.exports = function exportShippingLinesCsv() {
   const OUTPUT_FILE = path.join(paths.OUTPUT, "shipping_lines.csv");
 
-  const rows = getAllShippingLines();
+  const db = new Database(paths.DB);
 
-  if (!rows.length) {
-    console.log("⚠ No shipping lines found");
-    return;
+  // 🔥 Get column names dynamically
+  const columns = db
+    .prepare("PRAGMA table_info(shipping_lines)")
+    .all()
+    .map(c => c.name);
+
+  // Safety check
+  if (!columns.length) {
+    throw new Error("shipping_lines table has no columns");
   }
 
-  const headers = Object.keys(rows[0]);
+  // Get data
+  const rows = db.prepare("SELECT * FROM shipping_lines").all();
 
   const csv = [
-    headers.join(","),
-    ...rows.map(r =>
-      headers.map(h => `"${r[h] ?? ""}"`).join(",")
+    columns.join(","), // header row
+    ...rows.map(row =>
+      columns.map(col => `"${row[col] ?? ""}"`).join(",")
     )
   ].join("\n");
 
   fs.writeFileSync(OUTPUT_FILE, csv, "utf8");
-  
-  console.log(`✅ Shipping lines CSV exported: ${OUTPUT_FILE}`);
-}
+};
 
-module.exports = exportShippingLinesToCsv;
 
 // CLI support
 if (require.main === module) {
