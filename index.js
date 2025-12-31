@@ -3,6 +3,7 @@
 const path = require("path");
 const fs = require("fs");
 const PATHS = require("./app/core/paths");
+const { syncShippingLines } = require("./app/core/syncShippingLines");
 
 // --------------------
 // DEBUG BOOTSTRAP
@@ -68,7 +69,8 @@ Usage:
     }
 
     if (mode === "update") {
-      await require("./updater")();
+      await syncShippingLines();
+      // await require("./updater")();
     }
 
     console.log("✔ Task completed");
