@@ -1,7 +1,15 @@
+InstallDir "$PROGRAMFILES\Scrapper"
+InstallDirRegKey HKLM "Software\Scrapper" "InstallPath"
+
+RequestExecutionLevel admin
+
+SilentInstall silent
+SilentUninstall silent
+
 !macro customInstall
-  ; Resolve real user AppData path
-  CreateDirectory "$PROFILE\AppData\Roaming\scrapper"
-  FileOpen $0 "$PROFILE\AppData\Roaming\scrapper\install_path.txt" w
+  ; Save install directory for app / updater / Excel
+  CreateDirectory "$APPDATA\scrapper"
+  FileOpen $0 "$APPDATA\scrapper\install_path.txt" w
   FileWrite $0 "$INSTDIR"
   FileClose $0
 !macroend

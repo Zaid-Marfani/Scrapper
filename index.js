@@ -3,7 +3,6 @@
 const path = require("path");
 const fs = require("fs");
 const PATHS = require("./app/core/paths");
-const { syncShippingLines } = require("./app/core/syncShippingLines");
 
 // --------------------
 // DEBUG BOOTSTRAP
@@ -33,13 +32,14 @@ console.log("PARSED ARGS:", mode || "(none)");
 // --------------------
 // VALIDATE MODE
 // --------------------
-if (!mode || !["single", "multiple", "update", "init"].includes(mode)) {
+if (!mode || !["single", "multiple", "update", "init", "flushedmultiple"].includes(mode)) {
   console.error(`
 Usage:
   Scrapper.exe init
   Scrapper.exe single
   Scrapper.exe multiple
   Scrapper.exe update
+  Scrapper.exe flushedmultiple
 `);
   process.exit(1);
 }
@@ -55,22 +55,28 @@ Usage:
     }
 
     if (mode === "single") {
-      // await require("./app/core/syncShippingLines")();
       await require("./app/core/export_shipping_lines_csv")();
       await require("./app/run_single")();
       await require("./app/core/export_results_csv")();
     }
 
+    if (mode === "flushedmultiple") {
+      const { resetResults } = require("./app/core/db");
+      await resetResults();
+      await require("./app/run_parallel")();
+      await require("./app/core/export_results_csv")();
+    }
+
     if (mode === "multiple") {
-      // await require("./app/core/syncShippingLines")();
       await require("./app/core/export_shipping_lines_csv")();
       await require("./app/run_parallel")();
       await require("./app/core/export_results_csv")();
     }
 
     if (mode === "update") {
+      const { syncShippingLines } = require("./app/core/syncShippingLines");
       await syncShippingLines();
-      // await require("./updater")();
+      await runSetupUpdater(pkg.version);
     }
 
     console.log("✔ Task completed");
