@@ -12,11 +12,10 @@ const { spawn } = require("child_process");
 const TMP_DIR = path.join(os.tmpdir(), "scrapper_update");
 const SETUP_PATH = path.join(TMP_DIR, "Scrapper-Setup.exe");
 
-const { runSetupUpdater } = require("./updater");
 const pkg = require("./package.json");
 
 const META_URL =
-  "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper-Config/main/version.json";
+  "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper/refs/heads/main/config/version.json";
 
 /* ---------------- FETCH JSON ---------------- */
 

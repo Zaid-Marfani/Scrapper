@@ -1,6 +1,6 @@
 {
-  "version": "1.4.0",
-  "setup_url": "https://github.com/Zaid-Marfani/Scrapper/releases/download/v1.2.0/Scrapper.Setup.1.4.0.exe",
+  "version": "2.0.0",
+  "setup_url": "https://github.com/Zaid-Marfani/Scrapper/releases/download/stable/Scrapper.Setup.2.0.0.exe",
   "notes": [
     "Improved updater",
     "Shipping lines sync fixes",
