@@ -3,9 +3,6 @@ InstallDirRegKey HKLM "Software\Scrapper" "InstallPath"
 
 RequestExecutionLevel admin
 
-SilentInstall silent
-SilentUninstall silent
-
 !macro customInstall
   ; Save install directory for app / updater / Excel
   CreateDirectory "$APPDATA\scrapper"

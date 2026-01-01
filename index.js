@@ -3,6 +3,8 @@
 const path = require("path");
 const fs = require("fs");
 const PATHS = require("./app/core/paths");
+const { runSetupUpdater } = require("./updater");
+const pkg = require("./package.json");
 
 // --------------------
 // DEBUG BOOTSTRAP
@@ -32,7 +34,7 @@ console.log("PARSED ARGS:", mode || "(none)");
 // --------------------
 // VALIDATE MODE
 // --------------------
-if (!mode || !["single", "multiple", "update", "init", "flushedmultiple"].includes(mode)) {
+if (!mode || !["single", "multiple", "update", "init", "flushedmultiple","version"].includes(mode)) {
   console.error(`
 Usage:
   Scrapper.exe init
@@ -40,6 +42,7 @@ Usage:
   Scrapper.exe multiple
   Scrapper.exe update
   Scrapper.exe flushedmultiple
+  Scrapper.exe version
 `);
   process.exit(1);
 }
@@ -77,6 +80,10 @@ Usage:
       const { syncShippingLines } = require("./app/core/syncShippingLines");
       await syncShippingLines();
       await runSetupUpdater(pkg.version);
+    }
+
+    if (mode === "version") {
+      console.log("Installed Version is V" + pkg.version);
     }
 
     console.log("✔ Task completed");
