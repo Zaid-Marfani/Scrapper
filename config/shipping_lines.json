@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.3.0",
   "lastUpdated": "2025-12-26",
   "lines": [
     {
@@ -41,13 +41,6 @@
       "code": "KMT",
       "display_name": "KMTC",
       "scraper_key": "kmtc",
-      "url": "https://www.ekmtc.com/index.html#/cargo-tracking",
-      "active": 1
-    },
-    {
-      "code": "smp",
-      "display_name": "Sample",
-      "scraper_key": "smp",
       "url": "https://www.ekmtc.com/index.html#/cargo-tracking",
       "active": 1
     }
