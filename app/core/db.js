@@ -90,6 +90,19 @@ db.prepare(`
   )
 `).run();
 
+function resetResults(db) {
+  db.exec(`
+    DELETE FROM bl_results;
+  `);
+
+  // Seed ONE dummy row to keep Excel lookups alive
+  db.exec(`
+    INSERT INTO bl_results (bl_no)
+    VALUES ('__SEED__');
+  `);
+}
+
+
 
 
 // ===============================
@@ -129,5 +142,6 @@ function getAllShippingLines() {
 module.exports = {
   upsertRecord,
   getAllRecords,
-  getAllShippingLines
+  getAllShippingLines,
+  resetResults
 };

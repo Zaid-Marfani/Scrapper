@@ -1,11 +1,9 @@
 {
-  "version": "1.2.0",
-  "zip": "https://github.com/Zaid-Marfani/Scrapper/releases/download/v1.2.0/Scrapper-v1.2.0.zip",
-  "file": [
-    "app/",
-    "index.js",
-    "package.json",
-    "updater.js",
-    "config/"
+  "version": "1.4.0",
+  "setup_url": "https://github.com/Zaid-Marfani/Scrapper/releases/download/v1.2.0/Scrapper.Setup.1.4.0.exe",
+  "notes": [
+    "Improved updater",
+    "Shipping lines sync fixes",
+    "Stability improvements"
   ]
 }
