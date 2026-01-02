@@ -23,10 +23,39 @@ logStartup();
 // ARG PARSING
 // --------------------
 const args = process.argv.slice(2);
-const mode = args[0]; // "init"
 
+// Normalize mode from either:
+//   Scrapper.exe init
+//   Scrapper.exe --mode=init
+//   Scrapper.exe --mode init   (future-safe)
+let mode = null;
 
-console.log("PARSED ARGS:", mode || "(none)");
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+
+  if (!a) continue;
+
+  // --mode=init
+  if (a.startsWith("--mode=")) {
+    mode = a.split("=")[1];
+    break;
+  }
+
+  // --mode init
+  if (a === "--mode" && args[i + 1]) {
+    mode = args[i + 1];
+    break;
+  }
+
+  // plain: init / single / check-excel-update
+  if (!a.startsWith("-")) {
+    mode = a;
+    break;
+  }
+}
+
+console.log("PARSED MODE:", mode || "(none)");
+
 
 // --------------------
 // VALIDATE MODE
@@ -45,6 +74,12 @@ Usage:
 `);
   process.exit(1);
 }
+
+function getFirstNonFlagArg(afterMode = true) {
+  const clean = args.filter(a => a && !a.startsWith("-"));
+  return afterMode ? clean[1] : clean[0];
+}
+
 
 // --------------------
 // ROUTING
@@ -86,19 +121,16 @@ Usage:
       await runSetupUpdater(pkg.version);
     }
     if (mode === "check-excel-update") {
-      const currentVersion = process.argv[3] || "0.0.0";
-      console.log("currentVersion: " + currentVersion);
+      const currentVersion = getFirstNonFlagArg(true) || "0.0.0";
       await require("./app/core/checkExcelUpdate")(currentVersion);
     }
 
-    else if (node === "download-excel") {
-      const url = process.argv[3];
-      if (!url) {
-        console.error("Missing Excel download URL");
-        process.exit(1);
-      }
+    if (mode === "download-excel") {
+      const url = getFirstNonFlagArg(true);
+      if (!url) throw new Error("Missing URL");
       await require("./app/core/downloadExcel")(url);
     }
+
 
     console.log("✔ Task completed");
     process.exit(0);
