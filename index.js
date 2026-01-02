@@ -1,8 +1,5 @@
 "use strict";
 
-const path = require("path");
-const fs = require("fs");
-const PATHS = require("./app/core/paths");
 const { runSetupUpdater } = require("./updater");
 const pkg = require("./package.json");
 
@@ -83,7 +80,7 @@ Usage:
     }
 
     if (mode === "version") {
-      console.log("Installed Version is V" + pkg.version);
+      console.log("Installed Version: V" + pkg.version);
     }
 
     console.log("✔ Task completed");

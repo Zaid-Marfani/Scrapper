@@ -118,7 +118,7 @@ async function runParallel(tasks) {
 
   await context.close();
   export_results_csv();
-    fs.writeFileSync(path.join(PATHS.OUTPUT,"scrape_done.flag"), "done");
+    fs.writeFileSync(path.join(paths.OUTPUT,"scrape_done.flag"), "done");
 }
 
 // ------------------ ENTRY ------------------

@@ -90,14 +90,14 @@ db.prepare(`
   )
 `).run();
 
-function resetResults(db) {
+function resetResults() {
   db.exec(`
     DELETE FROM bl_results;
   `);
 
   // Seed ONE dummy row to keep Excel lookups alive
   db.exec(`
-    INSERT INTO bl_results (bl_no)
+    INSERT INTO bl_results (bl)
     VALUES ('__SEED__');
   `);
 }
