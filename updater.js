@@ -77,4 +77,30 @@ async function runSetupUpdater(currentVersion) {
   process.exit(0);
 }
 
-module.exports = { runSetupUpdater };
+function downloadFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+
+    https.get(url, res => {
+      // handle redirect (GitHub does this)
+      if ([301,302,303,307,308].includes(res.statusCode) && res.headers.location) {
+        return downloadFile(res.headers.location, dest)
+          .then(resolve)
+          .catch(reject);
+      }
+
+      if (res.statusCode !== 200) {
+        return reject(new Error("HTTP " + res.statusCode));
+      }
+
+      const file = fs.createWriteStream(dest);
+      res.pipe(file);
+
+      file.on("finish", () => file.close(resolve));
+      file.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
+
+module.exports = { runSetupUpdater, downloadFile };

@@ -31,7 +31,7 @@ console.log("PARSED ARGS:", mode || "(none)");
 // --------------------
 // VALIDATE MODE
 // --------------------
-if (!mode || !["single", "multiple", "update", "init", "flushedmultiple","version"].includes(mode)) {
+if (!mode || !["single", "multiple", "update", "init", "flushedmultiple", "version", "check-excel-update", "download-excel"].includes(mode)) {
   console.error(`
 Usage:
   Scrapper.exe init
@@ -40,6 +40,8 @@ Usage:
   Scrapper.exe update
   Scrapper.exe flushedmultiple
   Scrapper.exe version
+  Scrapper.exe check-excel-update
+  Scrapper.exe download-excel
 `);
   process.exit(1);
 }
@@ -49,6 +51,11 @@ Usage:
 // --------------------
 (async () => {
   try {
+
+    if (mode === "version") {
+      console.log("Installed Version: V" + pkg.version);
+    }
+    
     if (mode === "init") {
       const init = require("./app/init");
       await init();
@@ -78,9 +85,18 @@ Usage:
       await syncShippingLines();
       await runSetupUpdater(pkg.version);
     }
+    if (mode === "check-excel-update") {
+      const currentVersion = process.argv[3] || "0.0.0";
+      await require("./app/core/checkExcelUpdate")(currentVersion);
+    }
 
-    if (mode === "version") {
-      console.log("Installed Version: V" + pkg.version);
+    else if (node === "download-excel") {
+      const url = process.argv[3];
+      if (!url) {
+        console.error("Missing Excel download URL");
+        process.exit(1);
+      }
+      await require("./app/core/downloadExcel")(url);
     }
 
     console.log("✔ Task completed");
