@@ -55,7 +55,7 @@ Usage:
     if (mode === "version") {
       console.log("Installed Version: V" + pkg.version);
     }
-    
+
     if (mode === "init") {
       const init = require("./app/init");
       await init();
@@ -87,6 +87,7 @@ Usage:
     }
     if (mode === "check-excel-update") {
       const currentVersion = process.argv[3] || "0.0.0";
+      console.log("currentVersion: " + currentVersion);
       await require("./app/core/checkExcelUpdate")(currentVersion);
     }
 

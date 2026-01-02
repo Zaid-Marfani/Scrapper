@@ -23,7 +23,7 @@ module.exports = function downloadExcel(url) {
         file.close();
         fs.writeFileSync(
           FLAG,
-          `DOWNLOADED\nPATH=${target}`,
+          `DOWNLOADED\r\nPATH=${target}`,
           "utf8"
         );
         resolve();
