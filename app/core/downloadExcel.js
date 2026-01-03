@@ -3,27 +3,32 @@ const https = require("https");
 const os = require("os");
 const path = require("path");
 
-const FLAG = path.join(process.env.TEMP || os.tmpdir(), "excel_downloaded.flag");
+const TEMP = process.env.TEMP || os.tmpdir();
+const FLAG = path.join(TEMP, "excel_downloaded.flag");
 
 module.exports = function downloadExcel(url) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
 
     const target = path.join(
-      process.env.TEMP || os.tmpdir(),
+      TEMP,
       path.basename(decodeURIComponent(url))
     );
+
+    console.log("Downloading to:", target);
 
     const file = fs.createWriteStream(target);
 
     https.get(url, res => {
+
+      console.log("HTTP STATUS:", res.statusCode);
+
       if (res.statusCode !== 200) {
         fs.writeFileSync(
           FLAG,
           "ERROR\r\nMESSAGE=HTTP " + res.statusCode,
           "ascii"
         );
-        file.close();
-        return reject(new Error("HTTP " + res.statusCode));
+        return resolve();
       }
 
       res.pipe(file);
@@ -31,20 +36,23 @@ module.exports = function downloadExcel(url) {
       file.on("finish", () => {
         file.close();
 
-        const out =
-          "DOWNLOADED\r\n" +
-          "PATH=" + target;
+        fs.writeFileSync(
+          FLAG,
+          "DOWNLOADED\r\nPATH=" + target,
+          "ascii"
+        );
 
-        fs.writeFileSync(FLAG, out, "ascii");
+        console.log("Download complete");
         resolve();
       });
+
     }).on("error", err => {
       fs.writeFileSync(
         FLAG,
         "ERROR\r\nMESSAGE=" + err.message,
         "ascii"
       );
-      reject(err);
+      resolve();
     });
   });
 };

@@ -1,5 +1,9 @@
 "use strict";
 
+const fs = require("fs");
+const path = require("path");   // ✅ MISSING LINE (FIX)
+const os = require("os");
+
 const { runSetupUpdater } = require("./updater");
 const pkg = require("./package.json");
 
@@ -60,7 +64,21 @@ console.log("PARSED MODE:", mode || "(none)");
 // --------------------
 // VALIDATE MODE
 // --------------------
-if (!mode || !["single", "multiple", "update", "init", "flushedmultiple", "version", "check-excel-update", "download-excel"].includes(mode)) {
+if (
+  !mode ||
+  ![
+    "single",
+    "multiple",
+    "update",
+    "init",
+    "flushedmultiple",
+    "version",
+    "check-excel-update",
+    "download-excel",
+    "replace-excel"   // ✅ ADD THIS
+  ].includes(mode)
+) {
+
   console.error(`
 Usage:
   Scrapper.exe init
@@ -87,50 +105,96 @@ function getFirstNonFlagArg(afterMode = true) {
 (async () => {
   try {
 
-    if (mode === "version") {
-      console.log("Installed Version: V" + pkg.version);
-    }
+    switch (mode) {
 
-    if (mode === "init") {
-      const init = require("./app/init");
-      await init();
-    }
+      case "version":
+        console.log("Installed Version: V" + pkg.version);
+        break;
 
-    if (mode === "single") {
-      await require("./app/core/export_shipping_lines_csv")();
-      await require("./app/run_single")();
-      await require("./app/core/export_results_csv")();
-    }
+      case "init":
+        await require("./app/init")();
+        break;
 
-    if (mode === "flushedmultiple") {
-      const { resetResults } = require("./app/core/db");
-      await resetResults();
-      await require("./app/run_parallel")();
-      await require("./app/core/export_results_csv")();
-    }
+      case "single":
+        await require("./app/core/export_shipping_lines_csv")();
+        await require("./app/run_single")();
+        await require("./app/core/export_results_csv")();
+        break;
 
-    if (mode === "multiple") {
-      await require("./app/core/export_shipping_lines_csv")();
-      await require("./app/run_parallel")();
-      await require("./app/core/export_results_csv")();
-    }
+      case "multiple":
+        await require("./app/core/export_shipping_lines_csv")();
+        await require("./app/run_parallel")();
+        await require("./app/core/export_results_csv")();
+        break;
 
-    if (mode === "update") {
-      const { syncShippingLines } = require("./app/core/syncShippingLines");
-      await syncShippingLines();
-      await runSetupUpdater(pkg.version);
-    }
-    if (mode === "check-excel-update") {
-      const currentVersion = getFirstNonFlagArg(true) || "0.0.0";
-      await require("./app/core/checkExcelUpdate")(currentVersion);
-    }
+      case "flushedmultiple":
+        const { resetResults } = require("./app/core/db");
+        await resetResults();
+        await require("./app/run_parallel")();
+        await require("./app/core/export_results_csv")();
+        break;
 
-    if (mode === "download-excel") {
-      const url = getFirstNonFlagArg(true);
-      if (!url) throw new Error("Missing URL");
-      await require("./app/core/downloadExcel")(url);
-    }
+      case "update":
+        const { syncShippingLines } = require("./app/core/syncShippingLines");
+        await syncShippingLines();
+        await runSetupUpdater(pkg.version);
+        break;
 
+      case "check-excel-update": {
+        const currentVersion = getFirstNonFlagArg(true) || "0.0.0";
+        console.log("check-excel-update →", currentVersion);
+        await require("./app/core/checkExcelUpdate")(currentVersion);
+        break;
+      }
+
+      case "download-excel": {
+
+
+        const TEMP = process.env.TEMP || os.tmpdir();
+        const FLAG = path.join(TEMP, "excel_downloaded.flag");
+        const REQ = path.join(TEMP, "excel_download_request.txt");
+
+        try {
+          if (!fs.existsSync(REQ)) {
+            fs.writeFileSync(
+              FLAG,
+              "ERROR\r\nMESSAGE=Request file missing",
+              "ascii"
+            );
+            break;
+          }
+
+          const url = fs.readFileSync(REQ, "utf8").trim();
+          if (!url) {
+            fs.writeFileSync(
+              FLAG,
+              "ERROR\r\nMESSAGE=URL empty",
+              "ascii"
+            );
+            break;
+          }
+
+          console.log("download-excel →", url);
+
+          await require("./app/core/downloadExcel")(url);
+
+        } catch (e) {
+          fs.writeFileSync(
+            FLAG,
+            "ERROR\r\nMESSAGE=" + e.message,
+            "ascii"
+          );
+        }
+
+        break;
+      }
+      case "replace-excel":
+        await require("./app/core/replaceExcel")();
+        break;
+
+      default:
+        throw new Error("Unknown mode: " + mode);
+    }
 
     console.log("✔ Task completed");
     process.exit(0);
@@ -142,4 +206,5 @@ function getFirstNonFlagArg(afterMode = true) {
     process.exit(1);
   }
 })();
+
 
