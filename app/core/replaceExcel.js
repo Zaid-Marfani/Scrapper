@@ -10,7 +10,7 @@ module.exports = async function replaceExcel() {
   const reqFile = path.join(TEMP, "excel_replace_request.txt");
 
   if (!fs.existsSync(reqFile)) {
-    console.error("Replace request file missing");
+    console.error("replace-excel: request file missing");
     return;
   }
 
@@ -20,12 +20,17 @@ module.exports = async function replaceExcel() {
   const targetLine = lines.find(l => l.startsWith("TARGET="));
 
   if (!tempLine || !targetLine) {
-    console.error("Invalid replace request file");
+    console.error("replace-excel: invalid request file");
     return;
   }
 
-  const tempFile = tempLine.replace("TEMP=", "").trim();
-  const targetFile = targetLine.replace("TARGET=", "").trim();
+  const tempFile = tempLine.slice(5).trim();
+  const targetFile = targetLine.slice(7).trim();
+
+  if (!fs.existsSync(tempFile)) {
+    console.error("replace-excel: temp file missing");
+    return;
+  }
 
   // 🔒 Wait until Excel is fully closed
   while (true) {
@@ -36,17 +41,18 @@ module.exports = async function replaceExcel() {
     }
   }
 
-  const backup = targetFile + ".bak";
+  const backupFile = targetFile + ".bak";
 
-  // Backup original
+  // 🔒 Backup original
   if (fs.existsSync(targetFile)) {
-    fs.copyFileSync(targetFile, backup);
+    fs.copyFileSync(targetFile, backupFile);
   }
 
-  // Replace
-  fs.renameSync(tempFile, targetFile);
+  // 🔁 CROSS-DRIVE SAFE REPLACE
+  fs.copyFileSync(tempFile, targetFile);
+  fs.unlinkSync(tempFile);
 
-  // Relaunch Excel
+  // 🚀 Reopen Excel
   execSync(`start "" excel "${targetFile}"`, { shell: "cmd.exe" });
 
   console.log("Excel replaced successfully");
