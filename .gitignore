@@ -2,7 +2,6 @@
 node_modules/
 logs/
 app/edge-profile/
-Realeses/
 _backup/
 dist/
 output/
@@ -12,8 +11,3 @@ package.json
 app/core/package.json
 app/core/package-lock.json
 app/core/package.json
-/assets
-/assets
-/assets
-assets/Purchase list.xlsm
-assets/Purchase list.xlsm
