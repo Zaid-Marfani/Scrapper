@@ -1,57 +1,108 @@
+"use strict";
+
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const https = require("https");
-const { json } = require("stream/consumers");
 
-const FLAG = path.join(os.tmpdir(), "excel_update.flag");
+const TEMP = process.env.TEMP || os.tmpdir();
+
+const FLAG = path.join(TEMP, "excel_update.flag");
+const LOCAL_VERSION_FILE = path.join(TEMP, "excel_local_version.txt");
+
 const META_URL =
-    "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper/refs/heads/main/config/excel_version.json";
+  "https://raw.githubusercontent.com/Zaid-Marfani/Scrapper/refs/heads/main/config/excel_version.json";
 
+/* ---------------------------------------------
+   Fetch remote JSON safely
+--------------------------------------------- */
 function fetchJson(url) {
-    return new Promise((resolve, reject) => {
-        https.get(url, res => {
-            if (res.statusCode !== 200)
-                return reject(new Error("HTTP " + res.statusCode));
+  return new Promise((resolve, reject) => {
+    https.get(url, res => {
+      if (res.statusCode !== 200) {
+        return reject(new Error("HTTP " + res.statusCode));
+      }
 
-            let data = "";
-            res.on("data", d => (data += d));
-            res.on("end", () => resolve(JSON.parse(data)));
-        }).on("error", reject);
-    });
+      let data = "";
+      res.on("data", d => (data += d));
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(new Error("Invalid JSON"));
+        }
+      });
+    }).on("error", reject);
+  });
 }
 
-module.exports = async function checkExcelUpdate(currentVersion) {
-    try {
-        const meta = await fetchJson(META_URL);
+/* ---------------------------------------------
+   Semantic version compare
+   returns: 1 (a>b), -1 (a<b), 0 (equal)
+--------------------------------------------- */
+function compareVersions(a, b) {
+  const pa = String(a).split(".").map(Number);
+  const pb = String(b).split(".").map(Number);
 
-        console.log("Flag path: " + FLAG);
-        if (meta.version <= currentVersion) {
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0;
+    const nb = pb[i] || 0;
+    if (na > nb) return 1;
+    if (na < nb) return -1;
+  }
+  return 0;
+}
 
-            console.log("No Update");
+/* ---------------------------------------------
+   Read local Excel version from file
+--------------------------------------------- */
+function readLocalExcelVersion() {
+  if (!fs.existsSync(LOCAL_VERSION_FILE)) {
+    return "0.0.0";
+  }
 
-            fs.writeFileSync(FLAG, "NO_UPDATE", "utf8");
-            return;
-        }
-        const EOL = "\r\n";
+  const txt = fs.readFileSync(LOCAL_VERSION_FILE, "utf8");
+  const line = txt.split(/\r?\n/).find(l => l.startsWith("VERSION="));
 
-        const out =
-            "UPDATE_AVAILABLE" + EOL +
-            "VERSION=" + meta.version + EOL +
-            "URL=" + meta.template_url;
+  return line ? line.slice(8).trim() : "0.0.0";
+}
 
-        fs.writeFileSync(FLAG, out, "ascii");
+/* ---------------------------------------------
+   MAIN
+--------------------------------------------- */
+module.exports = async function checkExcelUpdate() {
+  try {
+    const meta = await fetchJson(META_URL);
 
+    const localVersion = readLocalExcelVersion();
+    const remoteVersion = meta.version;
 
-        console.log(JSON.stringify(out));
+    const cmp = compareVersions(remoteVersion, localVersion);
 
-
-        fs.writeFileSync(FLAG, out, "utf8");
-    } catch (err) {
-        fs.writeFileSync(
-            FLAG,
-            "ERROR\nMESSAGE=" + err.message,
-            "utf8"
-        );
+    // -----------------------------
+    // Already up to date
+    // -----------------------------
+    if (cmp <= 0) {
+      fs.writeFileSync(FLAG, "NO_UPDATE", "utf8");
+      return;
     }
+
+    // -----------------------------
+    // Update available
+    // -----------------------------
+    const EOL = "\r\n";
+    const out =
+      "UPDATE_AVAILABLE" + EOL +
+      "VERSION=" + remoteVersion + EOL +
+      "URL=" + meta.template_url;
+
+    fs.writeFileSync(FLAG, out, "utf8");
+
+  } catch (err) {
+    fs.writeFileSync(
+      FLAG,
+      "ERROR\r\nMESSAGE=" + err.message,
+      "utf8"
+    );
+  }
 };

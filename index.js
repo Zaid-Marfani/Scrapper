@@ -141,9 +141,7 @@ function getFirstNonFlagArg(afterMode = true) {
         break;
 
       case "check-excel-update": {
-        const currentVersion = getFirstNonFlagArg(true) || "0.0.0";
-        console.log("check-excel-update →", currentVersion);
-        await require("./app/core/checkExcelUpdate")(currentVersion);
+        await require("./app/core/checkExcelUpdate")();
         break;
       }
 
